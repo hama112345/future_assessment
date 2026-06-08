@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 危機管理アセスメント（チャット版）</title>
+    <style>
+        :root {
+            --primary: #0b1329;
+            --accent: #1d4ed8;
+            --accent-hover: #111827;
+            --bg-color: #e2e8f0;       
+            --chat-messages-bg: #f8fafc; 
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --ai-bubble: #ffffff;
+            --user-bubble: #1d4ed8;
+            --border-light: #e2e8f0;
+            --font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: var(--font-family); 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            line-height: 1.6; 
+            height: 100vh;
+            height: 100dvh;
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        
+        header { 
+            background-color: var(--primary); 
+            color: #ffffff; 
+            padding: 20px 16px 24px 16px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 12px; 
+            z-index: 30; 
+            flex-shrink: 0; 
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        
+        .header-info { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 14px; 
+        }
+        
+        .ai-avatar-header { 
+            width: 60px; 
+            height: 60px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            background-color: #ffffff; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .header-text { text-align: left; }
+        .header-text h1 { font-size: 1.2rem; font-weight: 700; margin: 0; letter-spacing: 0.05em; }
+        .header-text p { font-size: 0.8rem; color: #94a3b8; margin: 0; }
+        
+        .progress-text { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: #ffffff;
+            background: var(--accent); 
+            padding: 4px 16px; 
+            border-radius: 20px; 
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .progress-wrapper {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #60a5fa; 
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        main { 
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            width: 100%; 
+            overflow: hidden;
+        }
+        
+        .chat-container { 
+            width: 100%; 
+            max-width: 600px; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--chat-messages-bg); 
+            height: 100%; 
+            border-left: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
+            position: relative;
+        }
+        
+        .chat-messages { 
+            flex: 1; 
+            padding: 20px 16px; 
+            overflow-y: auto; 
+            scroll-behavior: smooth; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            background-color: var(--chat-messages-bg);
+            padding-bottom: 40px; 
+        }
+
+        .message-row { display: flex; width: 100%; }
+        .animate-fade { opacity: 0; transform: translateY(10px); animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        .ai-row { justify-content: flex-start; }
+        
+        .ai-avatar { 
+            width: 54px; 
+            height: 54px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            margin-right: 12px; 
+            flex-shrink: 0; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            background-color: #ffffff; 
+        }
+        
+        .ai-bubble { 
+            background-color: var(--ai-bubble); 
+            color: var(--text-main); 
+            padding: 14px 18px; 
+            border-radius: 4px 18px 18px 18px; 
+            max-width: 80%; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
+            font-size: 0.95rem; 
+            line-height: 1.5; 
+            position: relative; 
+            border: 1px solid var(--border-light); 
+        }
+        
+        .user-row { justify-content: flex-end; }
+        .user-bubble { background-color: var(--user-bubble); color: #ffffff; padding: 12px 18px; border-radius: 18px 4px 18px 18px; max-width: 85%; box-shadow: 0 2px 6px rgba(29, 78, 216, 0.2); font-size: 0.95rem; font-weight: 500; }
+
+        .typing-indicator { display: flex; gap: 4px; padding: 8px 4px; }
+        .dot { width: 6px; height: 6px; background-color: #94a3b8; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        .chat-input-area { 
+            width: 100%; 
+            background: var(--chat-messages-bg); 
+            padding: 12px 16px 24px 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            flex-shrink: 0; 
+            border-top: 1px solid var(--border-light);
+            position: relative;
+            z-index: 20;
+        }
+        
+        .option-btn { background-color: #ffffff; border: 2px solid var(--accent); color: var(--accent); border-radius: 20px; padding: 14px 20px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .option-btn:hover { background-color: var(--accent); color: #ffffff; transform: translateY(-2px); }
+        .start-btn { background-color: var(--primary); color: #ffffff; border: none; border-radius: 20px; padding: 16px 20px; font-size: 1.1rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 12px rgba(11, 19, 41, 0.2); transition: all 0.2s; }
+        .start-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+
+        .back-btn { background-color: transparent; color: var(--text-muted); border: none; padding: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 4px; text-align: center; width: 100%; transition: color 0.2s; }
+        .back-btn:hover { color: var(--text-main); }
+
+        /* 💡 診断結果専用の装飾スタイルを大幅強化 */
+        .result-card { text-align: center; width: 100%; padding: 4px; }
+        .result-image { display: block; width: 100%; max-height: 400px; margin: 0 auto 16px; border-radius: 12px; filter: drop-shadow(0 10px 20px rgba(11, 19, 41, 0.15)); object-fit: contain; }
+        .result-emoji { font-size: 4.5rem; margin-bottom: 12px; }
+        .result-badge { display: inline-block; background-color: var(--primary); color: #ffffff; font-size: 1rem; font-weight: 700; padding: 6px 16px; border-radius: 20px; margin-bottom: 12px; }
+        .score-display { font-size: 2.4rem; font-weight: 800; color: var(--accent); margin-bottom: 4px; line-height: 1; }
+        .score-display span { font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .rank-name { font-size: 1.15rem; font-weight: 700; color: var(--primary); margin-bottom: 24px; border-bottom: 2px dashed var(--border-light); padding-bottom: 16px; }
+        
+        .result-section { margin-top: 20px; text-align: left; }
+        .section-title { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        
+        /* 診断結果メッセージの枠 */
+        .result-message { 
+            font-size: 1rem; 
+            color: var(--text-main); 
+            background: #ffffff; 
+            padding: 18px; 
+            border-radius: 12px; 
+            border: 1px solid var(--accent); 
+            line-height: 1.7; 
+            box-shadow: 0 4px 6px rgba(29, 78, 216, 0.05);
+        }
+        
+        /* タイプ解説（コンセプト）の枠 */
+        .result-concept { 
+            font-size: 0.95rem; 
+            color: var(--text-main); 
+            background: #f8fafc; 
+            padding: 16px; 
+            border-radius: 12px; 
+            border: 1px dashed #94a3b8; 
+            line-height: 1.7; 
+        }
+
+        .restart-btn { margin-top: 24px; width: 100%; background: #e2e8f0; color: var(--text-main); border: none; padding: 14px; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
+        .restart-btn:hover { background: #cbd5e1; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-info">
+            <img src="icon.png" alt="AI Avatar" class="ai-avatar-header">
+            <div class="header-text">
+                <h1>AI 危機管理アセスメント</h1>
+                <p>あなた専用のリスク診断コンシェルジュ</p>
+            </div>
+        </div>
+        <div class="progress-text" id="headerProgress">0 / 16</div>
+        <div class="progress-wrapper">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </header>
+
+    <main>
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message-row ai-row animate-fade">
+                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-bubble">
+                        こんにちは！AIコンシェルジュです。<br><br>
+                        日常に潜む「見落としがちなリスク」への防衛力を診断します。直感で「はい」「少し不安」「いいえ」を選んでください。<br><br>
+                        準備ができたら下のボタンから始めてくださいね。
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area" id="inputArea">
+                <button class="start-btn" onclick="startQuiz()">診断をスタートする</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // A: お金・仕事・契約 / B: 健康・メンタル・対人 / C: 災害・住まい・デジタル
+        const questions = [
+            { q: "大地震などの災害時に備え、水・食料の備蓄や避難場所の確認はできている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "定期的な健康診断を受診し、体調不良時にすぐ相談できる「かかりつけ医」はいる？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "自転車事故や他人のモノを壊してしまった時など、日常の賠償リスクへの対処法（保険等）は決まっている？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            
+            { q: "今、あなたが一番「もし起きたらどうしよう…」と不安に感じるトラブルはどれですか？", options: [
+                {text:"急な収入減や賠償、詐欺など、お金や仕事のトラブル", score:0}, 
+                {text:"自分や家族の病気・介護、人間関係など、心身のトラブル", score:0}, 
+                {text:"大災害やインフラ停止、デジタル乗っ取りなど、環境のトラブル", score:0}  
+            ]}, 
+            
+            { q: "もし明日から突然収入が途絶えても、最低半年間は生活できる「緊急用の貯金」はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "会社の倒産や急なリストラなど、予期せぬキャリアの危機に対する「次の打ち手」の準備はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "「絶対に儲かる」という話や、悪質な訪問販売・ネットの定期購入トラブルをキッパリ断る自信はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "病気やケガで長期間動けなくなった場合の、サポート体制（家族や公的制度の知識）は整っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "強いストレスや悩みを感じたとき、一人で抱え込まずに本音で相談できる人や場所はある？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "騒音やご近所トラブル、職場でのハラスメントなどに直面した際、どこに相談すべきか知っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "自宅の火災保険や地震保険の補償内容（水害や破損がどこまでカバーされるか）を正確に把握している？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "停電や断水、ガス漏れなど、自宅のライフラインが突然止まったときの初期対応を知っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "実家の急な介護や自宅の修繕など、突然の環境変化への心の準備や情報収集はできている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "空き巣対策や、スマホの乗っ取り・フィッシング詐欺への対策は日常的に行っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "スマホやPCを突然紛失・故障した際のために、写真や重要なパスワードのバックアップは取っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "万が一自分に不測の事態が起きたとき、家族が困らないよう「口座情報や重要書類の場所」を共有している？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] } 
+        ];
+
+        // 💡 12分類のデータ（タイトル・メッセージ・コンセプトの3点セット）
+        const matrixResults = {
+            "S": {
+                "A": { 
+                    title: "【要塞の盲点】 隙を見せないタカ", 
+                    msg: "全体的な危機管理能力は極めて高いですが、有事の際の「資金繰り」や契約関連にわずかな死角があります。緊急時のキャッシュフローだけ再確認しましょう。",
+                    concept: "タカは高い視座から全体を見渡し、守りに隙がありません。しかし、狙った獲物（目先の利益や契約）に集中するあまり、足元のお金という一箇所の致命的な盲点（細かい契約の罠や、有事の資金繰り）を見落としてしまう危険性を表現しています。"
+                },
+                "B": { 
+                    title: "【限界突破リスク】 無敵の鋼サイ", 
+                    msg: "非常に堅牢な防衛力を誇りますが、自分自身の「心身の限界」を見落としがちです。いざという時に人に頼るルートや、休養の仕組み化を意識してください。",
+                    concept: "サイは分厚い皮膚と強靭な肉体（防御力）を持っています。その高い防衛力を自分自身で過信しているため、知らず知らずのうちにストレスや疲労を溜め込み、限界を超えて突然倒れてしまうリスクを表現しています。"
+                },
+                "C": { 
+                    title: "【不可抗力の脅威】 備え万全なビーバー", 
+                    msg: "あらゆるリスクを想定できていますが、住環境や大災害、デジタル乗っ取りなど「物理・環境的な脅威」への備えが唯一の弱点です。情報のバックアップと備蓄を再点検しましょう。",
+                    concept: "ビーバーは自ら立派なダム（生活基盤）を築く勤勉で計画的な動物です。どれだけ個人で完璧な備えをしていても、大自然の猛威（災害）や外敵の侵入（デジタル乗っ取り）など、個人の努力だけでは防ぎきれない外的要因への対策の薄さを表現しています。"
+                }
+            },
+            "A": {
+                "A": { 
+                    title: "【短期決戦型】 逃げ足の速いチーター", 
+                    msg: "フットワークは軽いですが、万が一の収入減に対する金銭的クッションが不足気味です。生活防衛資金の確保を急ぎましょう。",
+                    concept: "チーターは速く身軽で、目の前のトラブルを避ける瞬発力があります。しかし持久力がないため、ひとたび収入減や長期の療養といった「長期戦」に持ち込まれると、たちまち金銭的に息切れしてしまう危うさを表現しています。"
+                },
+                "B": { 
+                    title: "【自己犠牲リスク】 働き者のミツバチ", 
+                    msg: "日常のタスク処理は優秀ですが、病気やメンタル不調時のセーフティネットが弱点です。かかりつけ医や相談先を確保してください。",
+                    concept: "ミツバチは集団や家族のために一生懸命働き続ける優秀な存在です。しかし、周りのために動きすぎて自分自身を後回しにするため、過労やストレスに対するセーフティネット（相談相手や休養）がなく、突然飛べなくなってしまうリスクを表しています。"
+                },
+                "C": { 
+                    title: "【日常優先の死角】 おっとりアルパカ", 
+                    msg: "日常のトラブル回避は上手ですが、災害やネット詐欺など、外部からの突然の脅威に対する具体的なアクションが不足しています。初期対応の確認をしましょう。",
+                    concept: "アルパカは穏やかで平和な日常を送っています。日常のトラブル回避は上手な反面、大地震などの自然災害や、悪質なネット詐欺といった「非日常の強烈な脅威」に対して、つい意識が後回し（おっとり）になり、初期対応が遅れてしまう死角を表現しています。"
+                }
+            },
+            "B": {
+                "A": { 
+                    title: "【やりくり限界リスク】 綱渡りのサル", 
+                    msg: "全体的な備えが平均的ですが、特にお金やキャリアの危機に対する防御力が低めです。まずは数ヶ月分の生活費の確保から始めましょう。",
+                    concept: "サルのように持ち前の身軽さで、日々の家計のやりくりは何とか回っています。しかし、現状で手一杯なため、これ以上の突発的な出費や大きな経済的ダメージを受けると、一気にバランスを崩してしまう財務基盤の危うさを表現しています。"
+                },
+                "B": { 
+                    title: "【孤軍奮闘リスク】 一匹狼のオオカミ", 
+                    msg: "何でも一人で解決しようとする傾向があり、長期療養やメンタル不調時に行き詰まるリスクがあります。公的制度やサポート環境を知る事が急務です。",
+                    concept: "自立心が強く、何でも一人で解決しようと奮闘している状態です。しかし、周囲のサポート環境や公的制度への関心が薄いため、本当に自分が倒れてしまった瞬間に、頼れるルートが塞がってしまう孤立リスクを表しています。"
+                },
+                "C": { 
+                    title: "【後回しリスク】 楽観的なカンガルー", 
+                    msg: "トラブルが起きてから対処する傾向が強く、火災保険の未確認や備蓄不足、パスワードの使い回しなど、環境・情報リスクに弱いです。最低限の防衛設定を行いましょう。",
+                    concept: "「なんとかなるっしょ！」と元気に前へ跳んでいますが、お腹のポケット（備え）の中身が空っぽです。悪気はないものの、防災セットの準備、火災保険の確認、デジタルのセキュリティ設定などを、すべて「後回し」にしてしまっている無防備さを表現しています。"
+                }
+            },
+            "C": {
+                "A": { 
+                    title: "【家計基盤の見直し期】 頑張りすぎのラクダ", 
+                    msg: "危機に対する備えが全体的に不足しており、特にお金や仕事のトラブルが大きな負担になりかねません。保険の見直しや固定費削減で、早急に安心できる防衛資金を作りましょう。",
+                    concept: "過酷な環境を必死に耐えて歩くラクダのように、現状の家計や仕事の負担を一人で抱え込み、限界まで頑張りすぎている状態です。今こそ立ち止まり、プロと一緒に保険や支出の土台を整えるべき「絶好の見直し期」であることを表しています。"
+                },
+                "B": { 
+                    title: "【エネルギー不足】 お疲れ気味のパンダ", 
+                    msg: "いつトラブルが起きてもおかしくない状態です。まずは何よりも自分自身の健康とメンタルのケアを最優先し、周りに頼れる環境を整えてください。",
+                    concept: "日々の生活や目の前のストレスに対応するだけで精一杯になり、心と体のエネルギーが完全に不足している状態です。不測の事態が起きたときに踏ん張る「余力」が残っていないため、まずは周囲に頼り、燃料を蓄えるべきだと労わるモチーフです。"
+                },
+                "C": { 
+                    title: "【準備不足のサバイバル】 迷えるペンギン", 
+                    msg: "災害やデジタル詐欺に対する準備が不足しています。命や生活基盤を守るため、避難場所の確認とパスワード管理の見直しを今すぐ行い、備えを万全にしていきましょう。",
+                    concept: "大災害やデジタル詐欺などの大きな脅威に対して、何をどう備えればいいか分からず、情報の海で迷子になってしまっている状態です。丸腰で厳しい自然を生き抜くような危うさがあり、今すぐ具体的な「準備」を始める必要があることを伝えています。"
+                }
+            }
+        };
+
+        const animalEmojis = {
+            "S_A": "🦅", "S_B": "🦏", "S_C": "🦫",
+            "A_A": "🐆", "A_B": "🐝", "A_C": "🦙",
+            "B_A": "🐒", "B_B": "🐺", "B_C": "🦘",
+            "C_A": "🐫", "C_B": "🐼", "C_C": "🐧"
+        };
+
+        let currentStep = 0; 
+        let questionSequence = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; 
+        let userAnswers = {}; 
+        let isProcessing = false;
+
+        const chatMessages = document.getElementById('chatMessages');
+        const inputArea = document.getElementById('inputArea');
+        const headerProgress = document.getElementById('headerProgress');
+        const progressFill = document.getElementById('progressFill');
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                if(chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 50);
+        }
+
+        function removeElement(id) {
+            const el = document.getElementById(id);
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        }
+
+        function showTypingIndicator() {
+            const typingId = 'typing-' + Date.now() + Math.floor(Math.random() * 1000);
+            const html = `
+                <div class="message-row ai-row animate-fade" id="${typingId}">
+                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-bubble">
+                        <div class="typing-indicator">
+                            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', html);
+            scrollToBottom();
+            return typingId;
+        }
+
+        // 💡 isResult引数を追加し、結果表示時は吹き出しの幅を95%に広げる処理を追加
+        function appendAIMessage(text, noAnimate = false, isResult = false) {
+            const animClass = noAnimate ? '' : 'animate-fade';
+            const bubbleStyle = isResult ? 'max-width: 95%; width: 100%;' : '';
+            const html = `
+                <div class="message-row ai-row ${animClass}">
+                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-bubble" style="${bubbleStyle}">${text}</div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', html);
+            if (!noAnimate) scrollToBottom();
+        }
+
+        function appendUserMessage(text, noAnimate = false) {
+            const animClass = noAnimate ? '' : 'animate-fade';
+            const html = `
+                <div class="message-row user-row ${animClass}">
+                    <div class="user-bubble">${text}</div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', html);
+            if (!noAnimate) scrollToBottom();
+        }
+
+        function rebuildChat(targetStep) {
+            chatMessages.innerHTML = '';
+            appendAIMessage("こんにちは！AIコンシェルジュです。<br><br>日常に潜む「見落としがちなリスク」への防衛力を診断します。直感で「はい」「少し不安」「いいえ」を選んでください。", true);
+
+            for (let i = 0; i < targetStep; i++) {
+                let qIdx = questionSequence[i];
+                appendAIMessage(`<strong>【Q${i + 1}】</strong><br>${questions[qIdx].q}`, true);
+                
+                let optIdx = userAnswers[qIdx];
+                if (optIdx !== undefined) {
+                    let optText = questions[qIdx].options[optIdx].text;
+                    appendUserMessage(optText, true);
+                }
+
+                if (i === 3) {
+                    appendAIMessage("回答ありがとうございます。<br>現在の懸念に合わせて、<b>深掘りするリスク分野を最適化しています... 🔄</b>", true);
+                    appendAIMessage("調整が完了しました。それでは、診断を再開します！", true);
+                }
+            }
+            scrollToBottom();
+        }
+
+        function goBack() {
+            if (isProcessing || currentStep === 0) return;
+            isProcessing = true;
+            inputArea.innerHTML = ''; 
+
+            currentStep--;
+            rebuildChat(currentStep);
+            
+            setTimeout(() => {
+                showQuestion();
+            }, 100);
+        }
+
+        function startQuiz() {
+            if (isProcessing) return;
+            isProcessing = true;
+            inputArea.innerHTML = '';
+
+            const typingId = showTypingIndicator();
+            
+            setTimeout(() => {
+                try {
+                    removeElement(typingId);
+                    appendAIMessage("ありがとうございます！それでは診断をスタートしますね。");
+                    setTimeout(() => {
+                        showQuestion();
+                    }, 400);
+                } catch (e) {
+                    console.error("Error in startQuiz:", e);
+                    isProcessing = false;
+                }
+            }, 500);
+        }
+
+        function showQuestion() {
+            try {
+                headerProgress.innerText = `${currentStep + 1} / ${questions.length}`;
+                progressFill.style.width = `${(currentStep / questions.length) * 100}%`;
+                
+                const typingId = showTypingIndicator();
+                const actualQuestionIndex = questionSequence[currentStep];
+                const currentQuestion = questions[actualQuestionIndex];
+
+                setTimeout(() => {
+                    try {
+                        removeElement(typingId);
+                        appendAIMessage(`<strong>【Q${currentStep + 1}】</strong><br>${currentQuestion.q}`);
+                        
+                        inputArea.innerHTML = '';
+                        currentQuestion.options.forEach((option, index) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'option-btn';
+                            btn.innerText = option.text;
+                            btn.onclick = () => handleOptionClick(index, option.text);
+                            inputArea.appendChild(btn);
+                        });
+
+                        if (currentStep > 0) {
+                            const backBtn = document.createElement('button');
+                            backBtn.className = 'back-btn';
+                            backBtn.innerText = '↩️ 1つ前の質問に戻る';
+                            backBtn.onclick = goBack;
+                            inputArea.appendChild(backBtn);
+                        }
+                        
+                        scrollToBottom();
+                        isProcessing = false;
+                    } catch(e) {
+                        console.error("Error in showQuestion Timeout:", e);
+                        isProcessing = false;
+                    }
+                }, 800); 
+            } catch (e) {
+                console.error("Error in showQuestion:", e);
+                isProcessing = false;
+            }
+        }
+
+        function handleOptionClick(optionIndex, optionText) {
+            if (isProcessing) return; 
+            isProcessing = true;
+            inputArea.innerHTML = '';
+            
+            appendUserMessage(optionText);
+
+            const actualQuestionIndex = questionSequence[currentStep];
+            userAnswers[actualQuestionIndex] = optionIndex; 
+            
+            if (actualQuestionIndex === 3) {
+                if (optionIndex === 0) questionSequence = [0, 1, 2, 3, 4, 5, 6, 15, 7, 8, 9, 12, 10, 11, 13, 14]; 
+                else if (optionIndex === 1) questionSequence = [0, 1, 2, 3, 7, 8, 9, 12, 10, 11, 13, 14, 4, 5, 6, 15]; 
+                else if (optionIndex === 2) questionSequence = [0, 1, 2, 3, 10, 11, 13, 14, 4, 5, 6, 15, 7, 8, 9, 12]; 
+                
+                currentStep++;
+                
+                const analyzingId = showTypingIndicator();
+                setTimeout(() => {
+                    removeElement(analyzingId);
+                    appendAIMessage("回答ありがとうございます。<br>現在の懸念に合わせて、<b>深掘りするリスク分野を最適化しています... 🔄</b>");
+                    
+                    const buildId = showTypingIndicator();
+                    setTimeout(() => {
+                        removeElement(buildId);
+                        appendAIMessage("調整が完了しました。それでは、診断を再開します！");
+                        
+                        const nextId = showTypingIndicator();
+                        setTimeout(() => {
+                            removeElement(nextId);
+                            showQuestion();
+                        }, 1000); 
+
+                    }, 4000); 
+                }, 1000);
+
+                return; 
+            }
+
+            currentStep++;
+            
+            if (currentStep < questions.length) {
+                setTimeout(showQuestion, 500);
+            } else {
+                setTimeout(calculateAndShowResult, 500);
+            }
+        }
+
+        function calculateAndShowResult() {
+            headerProgress.innerText = "診断完了";
+            progressFill.style.width = "100%"; 
+            
+            const typingId = showTypingIndicator();
+
+            setTimeout(() => {
+                try {
+                    removeElement(typingId);
+                    appendAIMessage("すべての質問が完了しました！<br>回答データを分析しています...");
+                    
+                    const analyzingId = showTypingIndicator();
+
+                    setTimeout(() => {
+                        removeElement(analyzingId);
+                        
+                        const maxScores = { A: 10, B: 10, C: 10 };
+                        let typeScores = { A: 0, B: 0, C: 0 };
+                        let totalScore = 0;
+
+                        for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+                            const optIdx = userAnswers[qIdx];
+                            if (optIdx === undefined) continue;
+                            const chosenOption = questions[qIdx].options[optIdx];
+                            totalScore += chosenOption.score || 0;
+                            if (chosenOption.type) {
+                                typeScores[chosenOption.type] += chosenOption.score;
+                            }
+                        }
+                        
+                        let rank = "C", rankName = "危機管理レッドゾーン：早急な対策が必要です";
+                        if (totalScore >= 25) { rank = "S"; rankName = "危機管理マスター：非常に高い防衛力を誇ります"; }
+                        else if (totalScore >= 19) { rank = "A"; rankName = "優秀な防衛者：基本は万全、あと一歩です"; }
+                        else if (totalScore >= 12) { rank = "B"; rankName = "平均的な市民：一部に大きなリスクが潜んでいます"; }
+
+                        let weakType = "A";
+                        let minScore = 999;
+                        ["A", "B", "C"].forEach(t => {
+                            if (typeScores[t] < minScore) {
+                                minScore = typeScores[t];
+                                weakType = t;
+                            }
+                        });
+                        
+                        const finalResult = matrixResults[rank][weakType];
+                        const imgKey = `${rank}_${weakType}`;
+                        const emoji = animalEmojis[imgKey] || "🐾";
+
+                        // 💡 診断結果とタイプ解説（コンセプト）のUIをリッチに構成
+                        const resultHtml = `
+                            <div class="result-card">
+                                <img src="result_${imgKey}.png" alt="診断結果イラスト" class="result-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="result-emoji" style="display: none;">${emoji}</div>
+                                
+                                <div class="result-badge">${finalResult.title}</div>
+                                <div class="score-display">${totalScore} <span>/ 30点</span></div>
+                                <div class="rank-name">${rankName}</div>
+                                
+                                <div class="result-section">
+                                    <div class="section-title">📊 診断結果（今後のアドバイス）</div>
+                                    <div class="result-message">${finalResult.msg}</div>
+                                </div>
+                                
+                                <div class="result-section">
+                                    <div class="section-title">💡 なぜこの動物？（タイプ解説）</div>
+                                    <div class="result-concept">${finalResult.concept}</div>
+                                </div>
+
+                                <button class="restart-btn" onclick="location.reload()">最初からやり直す</button>
+                            </div>
+                        `;
+                        
+                        // 第3引数をtrueにして、吹き出しをワイド表示
+                        appendAIMessage("お待たせしました。あなたの診断結果はこちらです！<br><br>" + resultHtml, false, true);
+
+                    }, 2000); 
+                } catch (e) {
+                    console.error("Error in result generation:", e);
+                    isProcessing = false;
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
