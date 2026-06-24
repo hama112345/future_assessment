@@ -273,6 +273,8 @@
             bottom: 50px;
         }
     </style>
+    .score-display { font-size: 2.4rem; font-weight: 800; color: var(--accent); margin-bottom: 12px; line-height: 1; text-align: center; }
+    .score-display span { font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
 </head>
 <body>
 
@@ -649,6 +651,9 @@
                     if (weakGenre === "environment") genreNum = "3";
 
                     const finalResult = resultData[baseType][genreNum];
+                    // 28点満点を100点満点に換算する計算式
+                    let rawScore = kScore + aScore;
+                    let totalScore = Math.round((rawScore / 28) * 100);
                     
                     // 画像ファイル名を生成（例：result_s_a.png）
                     const imgFileName = `result_${imgPrefix}_${imgSuffix}.png`;
@@ -662,6 +667,15 @@
                             <img src="${imgFileName}" alt="診断結果イラスト" class="result-image" onerror="this.onerror=null; this.src='${fallbackImgUrl}';">
                             
                             <div class="result-badge">${finalResult.title}</div>
+                            const resultHtml = `
+                            <div class="result-card">
+                                <img src="${imgFileName}" alt="診断結果イラスト" class="result-image" onerror="this.onerror=null; this.src='${fallbackImgUrl}';">
+                        
+                                <div class="result-badge">${finalResult.title}</div>
+                        
+                                <div class="score-display">${totalScore} <span>/ 100点</span></div>
+                        
+                                <div class="result-section">
                             
                             <div class="result-section">
                                 <div class="section-title">📊 今後のアドバイス</div>
