@@ -186,7 +186,6 @@
         .back-btn { background-color: transparent; color: var(--text-muted); border: none; padding: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 4px; text-align: center; width: 100%; transition: color 0.2s; }
         .back-btn:hover { color: var(--text-main); }
 
-        /* ===== スコア表示ブロック ===== */
         .result-card { text-align: center; width: 100%; padding: 4px; }
         .result-image { display: block; width: 100%; max-height: 400px; margin: 0 auto 16px; border-radius: 12px; filter: drop-shadow(0 10px 20px rgba(11, 19, 41, 0.15)); object-fit: contain; }
         .result-emoji { font-size: 4.5rem; margin-bottom: 12px; }
@@ -290,7 +289,6 @@
             line-height: 1.7; 
         }
 
-        /* ===== 魔法の質問ボックス ===== */
         .magic-q-box {
             background-color: #fffbeb;
             border-left: 4px solid #fbbf24;
@@ -754,7 +752,7 @@
                         removeElement(analyzingId);
                         
                         let typeScores = { A: 0, B: 0, C: 0 };
-                        let totalScore = 0;
+                        let totalScore = 0; // 最大30点（内部計算用）
 
                         for (let qIdx = 0; qIdx < questions.length; qIdx++) {
                             const optIdx = userAnswers[qIdx];
@@ -766,6 +764,10 @@
                             }
                         }
                         
+                        // ★ 100点満点に換算（表示用）
+                        const score100 = Math.round((totalScore / 30) * 100);
+
+                        // ランク判定は従来の30点スケールを維持（診断の一貫性を保つため）
                         let rank = "C";
                         let rankLabel = "C";
                         let rankName = "危機管理レッドゾーン：早急な対策が必要です";
@@ -790,8 +792,6 @@
                         const imgKey = `${rank}_${weakType}`;
                         const emoji = animalEmojis[imgKey] || "🐾";
 
-                        const scorePercent = Math.round((totalScore / 30) * 100);
-
                         const magicQEscaped = finalResult.magic_q.replace(/'/g, "\\'");
 
                         const resultHtml = `
@@ -800,12 +800,12 @@
                                 <img src="result_${imgKey}.png" alt="診断結果イラスト" class="result-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                                 <div class="result-emoji" style="display:none;">${emoji}</div>
 
-                                <!-- スコアブロック -->
+                                <!-- ★ スコアブロック（100点満点表示） -->
                                 <div class="score-block">
                                     <div class="score-label">あなたの危機管理スコア</div>
-                                    <div class="score-number">${totalScore} <span>/ 30点</span></div>
+                                    <div class="score-number">${score100} <span>/ 100点</span></div>
                                     <div class="score-bar-wrap">
-                                        <div class="score-bar-fill" style="width: ${scorePercent}%;"></div>
+                                        <div class="score-bar-fill" style="width: ${score100}%;"></div>
                                     </div>
                                     <div class="rank-badge-wrap">
                                         <div class="rank-badge">ランク ${rankLabel}</div>
