@@ -187,8 +187,7 @@
         .back-btn:hover { color: var(--text-main); }
 
         .result-card { text-align: center; width: 100%; padding: 4px; }
-        .result-image { display: block; width: 100%; max-height: 400px; margin: 0 auto 16px; border-radius: 12px; filter: drop-shadow(0 10px 20px rgba(11, 19, 41, 0.15)); object-fit: contain; }
-        .result-emoji { font-size: 4.5rem; margin-bottom: 12px; }
+        .result-image { display: block; width: 100%; max-height: 400px; margin: 0 auto 16px; border-radius: 12px; filter: drop-shadow(0 10px 20px rgba(11, 19, 41, 0.15)); object-fit: contain; background-color: #e2e8f0; }
 
         .score-block {
             background: linear-gradient(135deg, #0b1329 0%, #1d4ed8 100%);
@@ -364,7 +363,7 @@
 
     <header>
         <div class="header-info">
-            <img src="icon.png" alt="AI Avatar" class="ai-avatar-header">
+            <div class="ai-avatar-header" style="display:flex; align-items:center; justify-content:center; font-size: 30px; background:#fff;">🤖</div>
             <div class="header-text">
                 <h1>AI 危機管理アセスメント</h1>
                 <p>あなた専用のリスク診断コンシェルジュ</p>
@@ -380,7 +379,7 @@
         <div class="chat-container">
             <div class="chat-messages" id="chatMessages">
                 <div class="message-row ai-row animate-fade">
-                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-avatar" style="display:flex; align-items:center; justify-content:center; font-size: 24px; background:#fff;">🤖</div>
                     <div class="ai-bubble">
                         こんにちは！AIコンシェルジュです。<br><br>
                         日常に潜む「見落としがちなリスク」への防衛力を診断します。直感で「はい」「少し不安」「いいえ」を選んでください。<br><br>
@@ -398,29 +397,37 @@
     <div id="toast">コピーしました！</div>
 
     <script>
+        // ★ 20代半ば向けに最適化された設問（15問+分岐1問=計16問）
         const questions = [
-            { q: "大地震などの災害時に備え、水・食料の備蓄や避難場所の確認はできている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
-            { q: "定期的な健康診断を受診し、体調不良時にすぐ相談できる「かかりつけ医」はいる？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
-            { q: "自転車事故や他人のモノを壊してしまった時など、日常の賠償リスクへの対処法（保険等）は決まっている？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            // 共通導入（3問）
+            { q: "毎月のサブスクやスマホ課金、後払い決済など、自分が「何にいくら自動で払っているか」を正確に把握している？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "強いストレスや悩みを感じたとき、一人で抱え込まずに本音でSOSを出せる「サードプレイス（逃げ道となる人や場所）」を持っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "自宅や職場周辺で大雨や大地震の避難指示が出たとき、「どこへ・どのルートで逃げるか」を具体的にイメージできている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
             
-            { q: "今、あなたが一番「もし起きたらどうしよう…」と不安に感じるトラブルはどれですか？", options: [
-                {text:"急な収入減や賠償、詐欺など、お金や仕事のトラブル", score:0}, 
-                {text:"自分や家族の病気・介護、人間関係など、心身のトラブル", score:0}, 
-                {text:"大災害やインフラ停止、デジタル乗っ取りなど、環境のトラブル", score:0}  
+            // 分岐質問（スコア対象外）
+            { q: "今、あなたが一番「もし起きたらどうしよう…」とリアルに不安を感じるトラブルはどれですか？", options: [
+                {text:"収入減・キャリアの行き詰まりなど、お金・仕事の不安", score:0}, 
+                {text:"SNSトラブル・メンタル不調など、情報・心身の不安", score:0}, 
+                {text:"大地震・インフラ停止など、環境・災害の不安", score:0}  
             ]}, 
             
-            { q: "もし明日から突然収入が途絶えても、最低半年間は生活できる「緊急用の貯金」はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
-            { q: "会社の倒産や急なリストラなど、予期せぬキャリアの危機に対する「次の打ち手」の準備はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
-            { q: "「絶対に儲かる」という話や、悪質な訪問販売・ネットの定期購入トラブルをキッパリ断る自信はある？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            // A: お金・キャリア・契約（4問）
+            { q: "万が一、今の収入が突然途絶えたときのための「緊急用の貯金（生活費の数ヶ月分）」を、普段使う口座とは分けて確保している？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "資格の勉強、読書、情報収集など、将来の収入増やキャリアアップにつながる具体的な「自己投資」の行動を日頃からしている？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "SNSの「スキマ時間で高収入」といった副業や、知人からのうまい儲け話に対して、即座に裏付けを取る（またはキッパリ断る）ことができている？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            { q: "自転車事故や他人のモノを壊してしまった時など、日常の賠償リスクへの対処法（個人賠償責任保険等）は決まっている？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] }, 
+            
+            // B: 健康・メンタル・対人（4問）
             { q: "病気やケガで長期間動けなくなった場合の、サポート体制（家族や公的制度の知識）は整っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
-            { q: "強いストレスや悩みを感じたとき、一人で抱え込まずに本音で相談できる人や場所はある？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
-            { q: "騒音やご近所トラブル、職場でのハラスメントなどに直面した際、どこに相談すべきか知っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
-            { q: "自宅の火災保険や地震保険の補償内容（水害や破損がどこまでカバーされるか）を正確に把握している？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
-            { q: "停電や断水、ガス漏れなど、自宅のライフラインが突然止まったときの初期対応を知っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
-            { q: "実家の急な介護や自宅の修繕など、突然の環境変化への心の準備や情報収集はできている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
-            { q: "空き巣対策や、スマホの乗っ取り・フィッシング詐欺への対策は日常的に行っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
-            { q: "スマホやPCを突然紛失・故障した際のために、写真や重要なパスワードのバックアップは取っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
-            { q: "万が一自分に不測の事態が起きたとき、家族が困らないよう「口座情報や重要書類の場所」を共有している？", options: [{text:"はい", score:2, type:"A"}, {text:"少し不安", score:1, type:"A"}, {text:"いいえ", score:0, type:"A"}] } 
+            { q: "定期的な健康診断を受診し、体調不良時にすぐ相談できる「かかりつけ医」はいる？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "職場でのハラスメントや、悪質なネット通販・ネット詐欺トラブルに巻き込まれた際、「どこに相談すべきか（労働基準監督署・188番等）」を知っている？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            { q: "SNSの誹謗中傷や情報過多で心が疲れた際、意図的にスマホから離れる「デジタルデトックス」のマイルールはある？", options: [{text:"はい", score:2, type:"B"}, {text:"少し不安", score:1, type:"B"}, {text:"いいえ", score:0, type:"B"}] }, 
+            
+            // C: 環境・災害・デジタル（4問）
+            { q: "防災リュックの中身や、備蓄している水・食料などは、半年に1回以上「期限の確認や入れ替え（ローリングストック）」を行っている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "災害時にLINEや電話が繋がらない場合に備え、家族や大切な人と「安否確認の方法（災害用伝言ダイヤルなど）や集合場所」を話し合って決めている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "スマホの紛失や突然の故障、アカウント乗っ取りに備え、大切な写真やパスワードの「クラウド保存（バックアップ）」の設定を済ませている？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] }, 
+            { q: "複数のアプリで同じパスワードを使い回さず、重要なアカウントには「二段階認証」を設定するなど、定期的にセキュリティを見直している？", options: [{text:"はい", score:2, type:"C"}, {text:"少し不安", score:1, type:"C"}, {text:"いいえ", score:0, type:"C"}] } 
         ];
 
         const matrixResults = {
@@ -506,13 +513,6 @@
             }
         };
 
-        const animalEmojis = {
-            "S_A": "🦅", "S_B": "🦏", "S_C": "🦫",
-            "A_A": "🐆", "A_B": "🐝", "A_C": "🦙",
-            "B_A": "🐒", "B_B": "🐺", "B_C": "🦘",
-            "C_A": "🐫", "C_B": "🐼", "C_C": "🐧"
-        };
-
         let currentStep = 0; 
         let questionSequence = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; 
         let userAnswers = {}; 
@@ -540,7 +540,7 @@
             const typingId = 'typing-' + Date.now() + Math.floor(Math.random() * 1000);
             const html = `
                 <div class="message-row ai-row animate-fade" id="${typingId}">
-                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-avatar" style="display:flex; align-items:center; justify-content:center; font-size: 24px; background:#fff;">🤖</div>
                     <div class="ai-bubble">
                         <div class="typing-indicator">
                             <div class="dot"></div><div class="dot"></div><div class="dot"></div>
@@ -558,7 +558,7 @@
             const bubbleStyle = isResult ? 'max-width: 95%; width: 100%;' : '';
             const html = `
                 <div class="message-row ai-row ${animClass}">
-                    <img src="icon.png" alt="AI Avatar" class="ai-avatar">
+                    <div class="ai-avatar" style="display:flex; align-items:center; justify-content:center; font-size: 24px; background:#fff;">🤖</div>
                     <div class="ai-bubble" style="${bubbleStyle}">${text}</div>
                 </div>
             `;
@@ -688,9 +688,9 @@
             userAnswers[actualQuestionIndex] = optionIndex; 
             
             if (actualQuestionIndex === 3) {
-                if (optionIndex === 0) questionSequence = [0, 1, 2, 3, 4, 5, 6, 15, 7, 8, 9, 12, 10, 11, 13, 14]; 
-                else if (optionIndex === 1) questionSequence = [0, 1, 2, 3, 7, 8, 9, 12, 10, 11, 13, 14, 4, 5, 6, 15]; 
-                else if (optionIndex === 2) questionSequence = [0, 1, 2, 3, 10, 11, 13, 14, 4, 5, 6, 15, 7, 8, 9, 12]; 
+                if (optionIndex === 0) questionSequence = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; 
+                else if (optionIndex === 1) questionSequence = [0, 1, 2, 3, 8, 9, 10, 11, 4, 5, 6, 7, 12, 13, 14, 15]; 
+                else if (optionIndex === 2) questionSequence = [0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 8, 9, 10, 11]; 
                 
                 currentStep++;
                 
@@ -752,7 +752,7 @@
                         removeElement(analyzingId);
                         
                         let typeScores = { A: 0, B: 0, C: 0 };
-                        let totalScore = 0; // 最大30点（内部計算用）
+                        let totalScore = 0; // 15問×2点＝最大30点
 
                         for (let qIdx = 0; qIdx < questions.length; qIdx++) {
                             const optIdx = userAnswers[qIdx];
@@ -764,10 +764,10 @@
                             }
                         }
                         
-                        // ★ 100点満点に換算（表示用）
+                        // 100点満点に換算（表示用）
                         const score100 = Math.round((totalScore / 30) * 100);
 
-                        // ランク判定は従来の30点スケールを維持（診断の一貫性を保つため）
+                        // ランク判定（内部ロジックは30点スケール維持）
                         let rank = "C";
                         let rankLabel = "C";
                         let rankName = "危機管理レッドゾーン：早急な対策が必要です";
@@ -789,18 +789,26 @@
                         });
                         
                         const finalResult = matrixResults[rank][weakType];
-                        const imgKey = `${rank}_${weakType}`;
-                        const emoji = animalEmojis[imgKey] || "🐾";
-
                         const magicQEscaped = finalResult.magic_q.replace(/'/g, "\\'");
+
+                        // 画像ファイル名を（１）の方式に変換
+                        const prefixMap = { "S": "s", "A": "a", "B": "b", "C": "c" };
+                        const imgPrefix = prefixMap[rank];
+
+                        const suffixMap = { "A": "a", "B": "b", "C": "c" };
+                        const imgSuffix = suffixMap[weakType];
+
+                        const imgFileName = `result_${imgPrefix}_${imgSuffix}.png`;
+
+                        // フォールバック画像設定
+                        const fallbackText = encodeURIComponent(`画像が見つかりません\n(${imgFileName})`);
+                        const fallbackImgUrl = `https://placehold.jp/24/e2e8f0/1e293b/600x400.png?text=${fallbackText}`;
 
                         const resultHtml = `
                             <div class="result-card">
 
-                                <img src="result_${imgKey}.png" alt="診断結果イラスト" class="result-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <div class="result-emoji" style="display:none;">${emoji}</div>
+                                <img src="${imgFileName}" alt="診断結果イラスト" class="result-image" onerror="this.onerror=null; this.src='${fallbackImgUrl}';">
 
-                                <!-- ★ スコアブロック（100点満点表示） -->
                                 <div class="score-block">
                                     <div class="score-label">あなたの危機管理スコア</div>
                                     <div class="score-number">${score100} <span>/ 100点</span></div>
